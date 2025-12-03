@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyBlock Forge Tracker</title>
+    <!-- Tailwind CSS for styling (using CDN for portability) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        app: '#0f172a',
+                        card: '#1e293b',
+                        accent: '#38bdf8',
+                        accentActive: '#0ea5e9',
+                        text: '#f8fafc',
+                        muted: '#94a3b8',
+                        separator: '#334155'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        /* Custom scrollbar for item lists */
+        select::-webkit-scrollbar { width: 8px; }
+        select::-webkit-scrollbar-track { background: #1e293b; }
+        select::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        select::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div class="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Header -->
+        <div class="col-span-1 lg:col-span-2 mb-2">
+            <h1 class="text-3xl font-bold text-text">Forge Tracker</h1>
+            <p class="text-muted mt-1">Plan your forge schedule with browser-based timers & notifications.</p>
+            <hr class="border-separator mt-4">
+        </div>
+
+        <!-- Controls Panel -->
+        <div class="bg-card p-6 rounded-lg shadow-lg">
+            <h2 class="text-xl font-bold mb-4 text-text">Forge Settings</h2>
+
+            <!-- Category Select -->
+            <div class="mb-4">
+                <label class="block text-muted text-sm mb-2">Category</label>
+                <select id="categorySelect" class="w-full bg-app border border-separator rounded p-2 text-text focus:border-accent outline-none transition"></select>
+            </div>
+
+            <!-- Item Select -->
+            <div class="mb-2">
+                <label class="block text-muted text-sm mb-2">Item</label>
+                <select id="itemSelect" class="w-full bg-app border border-separator rounded p-2 text-text focus:border-accent outline-none transition"></select>
+            </div>
+            <div id="perItemLabel" class="text-sm text-accent mb-4 h-5"></div>
+
+            <!-- Quantity -->
+            <div class="mb-4">
+                <label class="block text-muted text-sm mb-2">Quantity (1-7)</label>
+                <input type="number" id="quantityInput" value="1" min="1" max="7" class="w-24 bg-app border border-separator rounded p-2 text-text focus:border-accent outline-none transition">
+            </div>
+
+            <hr class="border-separator my-6">
+
+            <h2 class="text-xl font-bold mb-4 text-text">Options</h2>
+
+            <!-- Checkboxes -->
+            <div class="space-y-3 mb-6">
+                <label class="flex items-center space-x-3 cursor-pointer">
+                    <input type="checkbox" id="quickForgeCheck" class="form-checkbox h-5 w-5 text-accent rounded bg-app border-separator focus:ring-0">
+                    <span class="text-text">Quick Forge perk (30% reduction)</span>
+                </label>
+                <label class="flex items-center space-x-3 cursor-pointer">
+                    <input type="checkbox" id="sequentialCheck" class="form-checkbox h-5 w-5 text-accent rounded bg-app border-separator focus:ring-0">
+                    <span class="text-text">Forge sequentially (single slot)</span>
+                </label>
+                <label class="flex items-center space-x-3 cursor-pointer">
+                    <input type="checkbox" id="notifyCheck" class="form-checkbox h-5 w-5 text-accent rounded bg-app border-separator focus:ring-0" checked>
+                    <span class="text-text">Send notifications (ntfy.sh)</span>
+                </label>
+                <label class="flex items-center space-x-3 cursor-pointer">
+                    <input type="checkbox" id="reminderCheck" class="form-checkbox h-5 w-5 text-accent rounded bg-app border-separator focus:ring-0">
+                    <span class="text-text">5-minute reminder</span>
+                </label>
+            </div>
+
+            <!-- Topic URL -->
+            <div class="mb-6">
+                <label class="block text-muted text-sm mb-2">ntfy topic URL</label>
+                <input type="text" id="topicInput" value="https://ntfy.sh/forge-tracker" class="w-full bg-app border border-separator rounded p-2 text-text focus:border-accent outline-none transition placeholder-slate-600">
+                <p class="text-xs text-muted mt-1">Use a unique topic to receive alerts on your phone.</p>
+            </div>
+
+            <button onclick="calculateForge()" class="w-full bg-accent hover:bg-accentActive text-white font-bold py-3 px-4 rounded transition duration-200">
+                Calculate Timer
+            </button>
+        </div>
+
+        <!-- Summary Panel -->
+        <div class="bg-card p-6 rounded-lg shadow-lg flex flex-col">
+            <h2 class="text-xl font-bold mb-4 text-text">Forge Summary</h2>
+            
+            <div id="summaryPlaceholder" class="text-muted flex-grow flex items-center justify-center text-center p-8 border-2 border-dashed border-separator rounded">
+                Awaiting selection...<br>Pick items to preview forge timing.
+            </div>
+
+            <div id="summaryContent" class="hidden space-y-4">
+                <div class="grid grid-cols-3 gap-y-3 text-sm">
+                    <div class="text-muted col-span-1">Item</div>
+                    <div id="resItem" class="text-text col-span-2 font-medium"></div>
+
+                    <div class="text-muted col-span-1">Base Time</div>
+                    <div id="resBase" class="text-text col-span-2"></div>
+
+                    <div class="text-muted col-span-1">Effective Time</div>
+                    <div id="resEffective" class="text-text col-span-2 text-accent"></div>
+
+                    <div class="text-muted col-span-1">Total Duration</div>
+                    <div id="resTotal" class="text-text col-span-2"></div>
+
+                    <div class="text-muted col-span-1">Ready At</div>
+                    <div id="resReady" class="text-text col-span-2 font-mono bg-app p-1 rounded inline-block"></div>
+                </div>
+
+                <hr class="border-separator my-4">
+
+                <div>
+                    <div class="flex justify-between items-end mb-2">
+                        <span class="text-muted text-sm">Active Countdown</span>
+                        <span id="timerText" class="text-text font-mono font-bold text-lg">00:00:00</span>
+                    </div>
+                    <div class="w-full bg-separator rounded-full h-4 overflow-hidden">
+                        <div id="progressBar" class="bg-accent h-4 rounded-full transition-all duration-1000" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div id="statusMessage" class="mt-4 text-sm text-accent bg-app p-3 rounded border border-separator">
+                    Waiting to start...
+                </div>
+                
+                <button onclick="copySummary()" class="mt-2 text-xs text-muted hover:text-white transition">Copy summary to clipboard</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- Data ---
+        // Extracted from Python script
+        const RAW_ITEMS = [
+            ["Refining", "Refined Diamond", "8 Hours"], ["Refining", "Refined Mithril", "6 Hours"], ["Refining", "Refined Titanium", "12 Hours"],
+            ["Refining", "Refined Tungsten", "1 Hour"], ["Refining", "Refined Umber", "1 Hour"], ["Refining", "Gemstone Mixture", "4 Hours"],
+            ["Refining", "Glacite Amalgamation", "4 Hours"], ["Refining", "Pure Mithril", "6 Hours"], ["Refining", "Titanium Tesseract", "6 Hours"],
+            ["Refining", "Dwarven Geode", "6 Hours"], ["Refining", "Petrified Starfall", "6 Hours"], ["Refining", "Scorched Topaz", "6 Hours"],
+            ["Refining", "Gleaming Crystal", "6 Hours"], ["Refining", "Amber Material", "6 Hours"], ["Refining", "Relic of Power", "8 Hours"],
+            ["Forging", "Fuel Canister", "10 Hours"], ["Forging", "Bejeweled Handle", "30 Seconds"], ["Forging", "Golden Plate", "6 Hours"],
+            ["Forging", "Mithril Plate", "18 Hours"], ["Forging", "Tungsten Plate", "3 Hours"], ["Forging", "Umber Plate", "3 Hours"],
+            ["Forging", "Perfect Plate", "30 Minutes"], ["Forging", "Beacon II", "20 Hours"], ["Forging", "Beacon III", "1 Day 6 Hours"],
+            ["Forging", "Beacon IV", "1 Day 16 Hours"], ["Forging", "Beacon V", "2 Days 2 Hours"], ["Forging", "Diamonite", "6 Hours"],
+            ["Forging", "Pocket Iceberg", "6 Hours"], ["Forging", "Power Crystal", "2 Hours"], ["Forging", "Travel Scroll to the Dwarven Forge", "5 Hours"],
+            ["Forging", "Bejeweled Collar", "2 Hours"], ["Forging", "Travel Scroll to the Dwarven Base Camp", "10 Hours"], ["Forging", "Secret Railroad Pass", "30 Seconds"],
+            ["Forging", "Portable Campfire", "30 Minutes"], ["Forging", "Tungsten Regulator", "18 Hours"], ["Forging", "Divan's Powder Coating", "1 Day 12 Hours"],
+            ["Tools", "Chisel", "4 Hours"], ["Tools", "Reinforced Chisel", "30 Seconds"], ["Tools", "Glacite-Plated Chisel", "30 Seconds"],
+            ["Tools", "Perfect Chisel", "30 Seconds"], ["Tools", "Dwarven Handwarmers", "4 Hours"], ["Tools", "Skeleton Key", "30 Minutes"],
+            ["Gear", "Mithril Gauntlet", "1 Hour"], ["Gear", "Mithril Belt", "1 Hour"], ["Gear", "Mithril Cloak", "1 Hour"],
+            ["Gear", "Mithril Necklace", "1 Hour"], ["Gear", "Titanium Gauntlet", "4 Hours 30 Minutes"], ["Gear", "Titanium Belt", "4 Hours 30 Minutes"],
+            ["Gear", "Titanium Cloak", "4 Hours 30 Minutes"], ["Gear", "Titanium Necklace", "4 Hours 30 Minutes"], ["Gear", "Amethyst Gauntlet", "1 Day"],
+            ["Gear", "Jade Belt", "1 Day"], ["Gear", "Sapphire Cloak", "1 Day"], ["Gear", "Amber Necklace", "1 Day"],
+            ["Gear", "Helmet Of Divan", "23 Hours"], ["Gear", "Chestplate Of Divan", "23 Hours"], ["Gear", "Leggings Of Divan", "23 Hours"],
+            ["Gear", "Boots Of Divan", "23 Hours"], ["Gear", "Pendant of Divan", "7 Days"], ["Gear", "Titanium Talisman", "14 Hours"],
+            ["Gear", "Titanium Ring", "20 Hours"], ["Gear", "Titanium Artifact", "1 Day 12 Hours"], ["Gear", "Titanium Relic", "3 Days"],
+            ["Gear", "Dwarven Metal Talisman", "1 Day"], ["Reforge Stones", "Goblin Omelette", "18 Hours"], ["Reforge Stones", "Pesto Goblin Omelette", "18 Hours"],
+            ["Reforge Stones", "Sunny Side Goblin Omelette", "18 Hours"], ["Reforge Stones", "Spicy Goblin Omelette", "18 Hours"],
+            ["Reforge Stones", "Blue Cheese Goblin Omelette", "18 Hours"], ["Drill Parts", "Drill Motor", "1 Day 6 Hours"], ["Drill Parts", "Mithril Drill SX-R226", "4 Hours"],
+            ["Drill Parts", "Mithril Drill SX-R326", "30 Seconds"], ["Drill Parts", "Ruby Drill TX-15", "4 Hours"], ["Drill Parts", "Gemstone Drill LT-522", "30 Seconds"],
+            ["Drill Parts", "Topaz Drill KGR-12", "30 Seconds"], ["Drill Parts", "Titanium Drill DR-X355", "4 Hours"], ["Drill Parts", "Titanium Drill DR-X455", "30 Seconds"],
+            ["Drill Parts", "Titanium Drill DR-X555", "30 Seconds"], ["Drill Parts", "Titanium Drill DR-X655", "30 Seconds"], ["Drill Parts", "Jasper Drill X", "30 Seconds"],
+            ["Drill Parts", "Mithril-Infused Fuel Tank", "1 Day"], ["Drill Parts", "Titanium-Infused Fuel Tank", "30 Seconds"], ["Drill Parts", "Gemstone Fuel Tank", "30 Seconds"],
+            ["Drill Parts", "Perfectly-Cut Fuel Tank", "30 Seconds"], ["Drill Parts", "Mithril-Plated Drill Engine", "1 Day"], ["Drill Parts", "Titanium-Plated Drill Engine", "30 Seconds"],
+            ["Drill Parts", "Ruby-Polished Drill Engine", "30 Seconds"], ["Drill Parts", "Sapphire-Polished Drill Engine", "30 Seconds"], ["Drill Parts", "Amber-Polished Drill Engine", "30 Seconds"],
+            ["Drill Parts", "Divan's Drill", "30 Seconds"], ["Perfect Gemstones", "Perfect Jasper Gemstone", "20 Hours"], ["Perfect Gemstones", "Perfect Ruby Gemstone", "20 Hours"],
+            ["Perfect Gemstones", "Perfect Jade Gemstone", "20 Hours"], ["Perfect Gemstones", "Perfect Sapphire Gemstone", "20 Hours"], ["Perfect Gemstones", "Perfect Amber Gemstone", "20 Hours"],
+            ["Perfect Gemstones", "Perfect Topaz Gemstone", "20 Hours"], ["Perfect Gemstones", "Perfect Amethyst Gemstone", "20 Hours"], ["Perfect Gemstones", "Perfect Opal Gemstone", "20 Hours"],
+            ["Perfect Gemstones", "Perfect Onyx Gemstone", "20 Hours"], ["Perfect Gemstones", "Perfect Citrine Gemstone", "20 Hours"], ["Perfect Gemstones", "Perfect Aquamarine Gemstone", "20 Hours"],
+            ["Perfect Gemstones", "Perfect Peridot Gemstone", "20 Hours"], ["Pets", "Ammonite", "3 Days"], ["Pets", "Mole", "3 Days"],
+            ["Pets", "T-Rex", "7 Days"], ["Pets", "Spinosaurus", "7 Days"], ["Pets", "Goblin", "7 Days"],
+            ["Pets", "Ankylosaurus", "7 Days"], ["Pets", "Penguin", "7 Days"], ["Pets", "Mammoth", "7 Days"],
+            ["Other", "Gemstone Chamber", "4 Hours"], ["Other", "Tungsten Key", "30 Seconds"], ["Other", "Umber Key", "30 Seconds"],
+            ["Testing", "Forge Tracker Test Item", "15 Seconds"]
+        ];
+
+        let menu = {};
+        let currentCountdownInterval = null;
+        let countdownTarget = null;
+        let lastResult = null;
+
+        // --- Helpers ---
+
+        function parseDuration(durationStr) {
+            const regex = /(\d+(?:\.\d+)?)\s*(seconds?|minutes?|hours?|days?)/gi;
+            let totalSeconds = 0;
+            let match;
+            while ((match = regex.exec(durationStr)) !== null) {
+                const amount = parseFloat(match[1]);
+                const unit = match[2].toLowerCase();
+                if (unit.startsWith("second")) totalSeconds += amount;
+                else if (unit.startsWith("minute")) totalSeconds += amount * 60;
+                else if (unit.startsWith("hour")) totalSeconds += amount * 3600;
+                else if (unit.startsWith("day")) totalSeconds += amount * 86400;
+            }
+            return totalSeconds;
+        }
+
+        function formatDuration(seconds) {
+            seconds = Math.floor(seconds);
+            if (seconds === 0) return "0 seconds";
+            
+            const d = Math.floor(seconds / 86400);
+            seconds %= 86400;
+            const h = Math.floor(seconds / 3600);
+            seconds %= 3600;
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+
+            const parts = [];
+            if (d > 0) parts.push(`${d} day${d !== 1 ? 's' : ''}`);
+            if (h > 0) parts.push(`${h} hour${h !== 1 ? 's' : ''}`);
+            if (m > 0) parts.push(`${m} minute${m !== 1 ? 's' : ''}`);
+            if (s > 0) parts.push(`${s} second${s !== 1 ? 's' : ''}`);
+            return parts.join(", ");
+        }
+
+        function formatTimer(seconds) {
+            seconds = Math.max(0, Math.floor(seconds));
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            
+            const pad = num => num.toString().padStart(2, '0');
+            if (h > 0) return `${h}h ${pad(m)}m ${pad(s)}s`;
+            return `${pad(m)}m ${pad(s)}s`;
+        }
+
+        // --- Initialization ---
+
+        function init() {
+            // Organize data
+            RAW_ITEMS.forEach(([cat, name, timeStr]) => {
+                if (!menu[cat]) menu[cat] = [];
+                menu[cat].push({ name, timeStr, seconds: parseDuration(timeStr) });
+            });
+
+            // Populate Category
+            const catSelect = document.getElementById("categorySelect");
+            Object.keys(menu).forEach(cat => {
+                const opt = document.createElement("option");
+                opt.value = cat;
+                opt.innerText = cat;
+                catSelect.appendChild(opt);
+            });
+
+            // Listeners
+            catSelect.addEventListener("change", updateItems);
+            document.getElementById("itemSelect").addEventListener("change", updatePerItemLabel);
+            document.getElementById("quickForgeCheck").addEventListener("change", updatePerItemLabel);
+            document.getElementById("notifyCheck").addEventListener("change", toggleTopicInput);
+
+            // Initial trigger
+            updateItems();
+        }
+
+        function updateItems() {
+            const cat = document.getElementById("categorySelect").value;
+            const itemSelect = document.getElementById("itemSelect");
+            itemSelect.innerHTML = "";
+            
+            if (menu[cat]) {
+                menu[cat].forEach((item, index) => {
+                    const opt = document.createElement("option");
+                    opt.value = index; // Store index to retrieve object later
+                    opt.innerText = `${item.name} (${item.timeStr})`;
+                    itemSelect.appendChild(opt);
+                });
+            }
+            updatePerItemLabel();
+        }
+
+        function updatePerItemLabel() {
+            const cat = document.getElementById("categorySelect").value;
+            const index = document.getElementById("itemSelect").value;
+            const item = menu[cat][index];
+            const isQuick = document.getElementById("quickForgeCheck").checked;
+            
+            if (!item) return;
+
+            let text = `Per item: ${item.timeStr}`;
+            if (isQuick) {
+                const effective = Math.floor(item.seconds * 0.7);
+                text += ` • Quick Forge: ${formatDuration(effective)}`;
+            }
+            document.getElementById("perItemLabel").innerText = text;
+        }
+
+        function toggleTopicInput() {
+            const enabled = document.getElementById("notifyCheck").checked;
+            document.getElementById("topicInput").disabled = !enabled;
+            if(!enabled) {
+                document.getElementById("topicInput").classList.add("opacity-50");
+            } else {
+                document.getElementById("topicInput").classList.remove("opacity-50");
+            }
+        }
+
+        // --- Core Logic ---
+
+        function calculateForge() {
+            const cat = document.getElementById("categorySelect").value;
+            const index = document.getElementById("itemSelect").value;
+            const item = menu[cat][index];
+            
+            if (!item) return;
+
+            const qty = parseInt(document.getElementById("quantityInput").value) || 1;
+            const isQuick = document.getElementById("quickForgeCheck").checked;
+            const isSeq = document.getElementById("sequentialCheck").checked;
+            const notify = document.getElementById("notifyCheck").checked;
+            const reminder = document.getElementById("reminderCheck").checked;
+            const topic = document.getElementById("topicInput").value.trim();
+
+            // Calculations
+            const multiplier = isQuick ? 0.7 : 1.0;
+            const perItemSeconds = Math.floor(item.seconds * multiplier);
+            const totalSeconds = isSeq ? (perItemSeconds * qty) : perItemSeconds;
+            
+            const now = new Date();
+            const completionTime = new Date(now.getTime() + totalSeconds * 1000);
+
+            // Update UI
+            document.getElementById("summaryPlaceholder").classList.add("hidden");
+            document.getElementById("summaryContent").classList.remove("hidden");
+
+            document.getElementById("resItem").innerText = `${qty}x ${item.name} (${cat})`;
+            document.getElementById("resBase").innerText = formatDuration(item.seconds);
+            document.getElementById("resEffective").innerText = formatDuration(perItemSeconds);
+            document.getElementById("resTotal").innerText = formatDuration(totalSeconds);
+            document.getElementById("resReady").innerText = completionTime.toLocaleTimeString();
+
+            lastResult = { item: item.name, qty, totalSeconds, completionTime, cat, isSeq, isQuick };
+
+            // Start Timer
+            startCountdown(totalSeconds, completionTime);
+
+            // Notifications
+            let status = "Timer started.";
+            if (notify && topic) {
+                status += " Notifications scheduled.";
+                sendNtfy(topic, `Started forging ${qty}x ${item.name}.`, `Ready at ${completionTime.toLocaleTimeString()}`, 0);
+                
+                // Completion Notification (via Delay header)
+                // ntfy supports "X-Delay", which lets the server hold the notification
+                const delayStr = `${Math.floor(totalSeconds)}s`;
+                const finishMsg = `${qty}x ${item.name} is ready! (${formatDuration(totalSeconds)})`;
+                sendNtfy(topic, "Forge Complete", finishMsg, 0, delayStr, "5"); // Priority 5 = high
+
+                // 5 Minute Reminder
+                if (reminder) {
+                    const reminderDelay = totalSeconds - 300;
+                    if (reminderDelay > 0) {
+                        const remMsg = `Reminder: ${qty}x ${item.name} ready in 5 minutes.`;
+                        sendNtfy(topic, "Forge Reminder", remMsg, 0, `${Math.floor(reminderDelay)}s`);
+                    }
+                }
+            } else {
+                status += " Notifications disabled.";
+            }
+
+            document.getElementById("statusMessage").innerText = status;
+        }
+
+        function startCountdown(totalSeconds, completionTime) {
+            if (currentCountdownInterval) clearInterval(currentCountdownInterval);
+            
+            const startTime = Date.now();
+            const totalMs = totalSeconds * 1000;
+            
+            const tick = () => {
+                const now = Date.now();
+                const remainingMs = completionTime.getTime() - now;
+                
+                if (remainingMs <= 0) {
+                    document.getElementById("timerText").innerText = "Ready!";
+                    document.getElementById("progressBar").style.width = "100%";
+                    document.getElementById("statusMessage").innerText = "Forge complete!";
+                    clearInterval(currentCountdownInterval);
+                    return;
+                }
+
+                const elapsed = now - startTime;
+                const percent = Math.min(100, (elapsed / totalMs) * 100);
+                
+                document.getElementById("progressBar").style.width = `${percent}%`;
+                document.getElementById("timerText").innerText = formatTimer(remainingMs / 1000);
+            };
+
+            tick(); // Immediate update
+            currentCountdownInterval = setInterval(tick, 1000);
+        }
+
+        async function sendNtfy(topicUrl, title, message, priority = 3, delay = null, pOverride = null) {
+            // Remove trailing slash if exists
+            const url = topicUrl.replace(/\/$/, "");
+            
+            const headers = {
+                "Title": title,
+                "Priority": pOverride || "3"
+            };
+            
+            if (delay) headers["X-Delay"] = delay;
+
+            try {
+                await fetch(url, {
+                    method: "POST",
+                    body: message,
+                    headers: headers
+                });
+            } catch (e) {
+                console.error("Notification failed", e);
+                document.getElementById("statusMessage").innerText = "Error: Could not reach ntfy.sh (CORS or network).";
+            }
+        }
+
+        function copySummary() {
+            if (!lastResult) return;
+            const lines = [
+                "Forge Summary",
+                `Item: ${lastResult.item}`,
+                `Quantity: ${lastResult.qty}`,
+                `Total Duration: ${formatDuration(lastResult.totalSeconds)}`,
+                `Ready At: ${lastResult.completionTime.toLocaleTimeString()}`
+            ];
+            navigator.clipboard.writeText(lines.join("\n"));
+            alert("Summary copied!");
+        }
+
+        // Run Init
+        init();
+
+    </script>
+</body>
+</html>
