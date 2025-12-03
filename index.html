@@ -32,15 +32,17 @@
         select::-webkit-scrollbar-thumb:hover { background: #475569; }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
 
     <div class="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         <!-- Header -->
         <div class="col-span-1 lg:col-span-2 mb-2">
             <h1 class="text-3xl font-bold text-text">Forge Tracker</h1>
-            <p class="text-muted mt-1">Trouble using the site? Visit the Readme file here.
-            https://github.com/bewfordq/ForgeTrackerWeb</p>
+            <p class="text-muted mt-1">
+                Trouble using the site? Visit the Readme file here:<br>
+                <a href="https://github.com/bewfordq/ForgeTrackerWeb" target="_blank" class="text-accent hover:underline">https://github.com/bewfordq/ForgeTrackerWeb</a>
+            </p>
             <hr class="border-separator mt-4">
         </div>
 
@@ -148,6 +150,17 @@
                 <button onclick="copySummary()" class="mt-2 text-xs text-muted hover:text-white transition">Copy summary to clipboard</button>
             </div>
         </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="max-w-5xl w-full text-center mt-12 mb-4 text-xs text-muted opacity-75">
+        <p class="mb-2">I try my best to keep the tool updated and as user friendly as possible, consider supporting the upkeep and development</p>
+        <a href="https://ko-fi.com/bewford" target="_blank" class="inline-block bg-[#1e293b] text-accent hover:text-white border border-separator rounded px-3 py-1 mb-3 transition">
+            Support on Ko-fi
+        </a>
+        <p>
+            Also consider supporting <a href="https://ntfy.sh" target="_blank" class="text-accent hover:underline">ntfy.sh</a> as without using their product this project wouldn't be possible.
+        </p>
     </div>
 
     <!-- JavaScript Logic -->
