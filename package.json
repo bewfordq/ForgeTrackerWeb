@@ -1,0 +1,29 @@
+{
+  "name": "forge-tracker-web",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Hypixel SkyBlock forge timer with ntfy.sh push notifications",
+  "homepage": "https://bewfordq.github.io/ForgeTrackerWeb/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bewfordq/ForgeTrackerWeb.git"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.11",
+    "tailwindcss": "^4.1.11",
+    "vite": "^7.0.0",
+    "vite-plugin-pwa": "^1.0.0",
+    "vitest": "^3.2.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
